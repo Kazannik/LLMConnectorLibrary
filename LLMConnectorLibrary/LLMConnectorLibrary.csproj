@@ -1,0 +1,67 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+	<LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <GenerateDocumentationFile>False</GenerateDocumentationFile>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <PackAsTool>False</PackAsTool>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <IsPublishable>True</IsPublishable>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <IsPublishable>True</IsPublishable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="FunctionParameters\get_we.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="FunctionParameters\get_we.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Embeddings\" />
+    <Folder Include="EventArgs\" />
+    <Folder Include="WorkerArgs\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="10.0.2" />
+    <PackageReference Include="Microsoft.Bcl.Memory" Version="10.0.2" />
+    <PackageReference Include="Microsoft.Bcl.Numerics" Version="10.0.2" />
+    <PackageReference Include="Microsoft.Extensions.AI" Version="10.2.0" />
+    <PackageReference Include="Microsoft.Extensions.AI.Abstractions" Version="10.2.0" />
+    <PackageReference Include="Microsoft.Extensions.AI.OpenAI" Version="10.2.0-preview.1.26063.2" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Abstractions" Version="10.0.2" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.2" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.2" />
+    <PackageReference Include="Microsoft.Extensions.Primitives" Version="10.0.2" />
+    <PackageReference Include="Microsoft.Extensions.VectorData.Abstractions" Version="9.7.0" />
+    <PackageReference Include="Microsoft.NETCore.Platforms" Version="7.0.4" />
+    <PackageReference Include="Microsoft.SemanticKernel.Connectors.InMemory" Version="1.69.0-preview" />
+    <PackageReference Include="OpenAI" Version="2.8.0" />
+    <PackageReference Include="System.Buffers" Version="4.6.1" />
+    <PackageReference Include="System.ClientModel" Version="1.8.1" />
+    <PackageReference Include="System.Diagnostics.DiagnosticSource" Version="10.0.2" />
+    <PackageReference Include="System.IO.Pipelines" Version="10.0.2" />
+    <PackageReference Include="System.Linq.AsyncEnumerable" Version="10.0.2" />
+    <PackageReference Include="System.Memory" Version="4.6.3" />
+    <PackageReference Include="System.Memory.Data" Version="10.0.2" />
+    <PackageReference Include="System.Net.ServerSentEvents" Version="10.0.2" />
+    <PackageReference Include="System.Numerics.Tensors" Version="10.0.2" />
+    <PackageReference Include="System.Numerics.Vectors" Version="4.6.1" />
+    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.1.2" />
+    <PackageReference Include="System.Text.Encodings.Web" Version="10.0.2" />
+    <PackageReference Include="System.Text.Json" Version="10.0.2" />
+    <PackageReference Include="System.Threading.Channels" Version="10.0.2" />
+    <PackageReference Include="System.Threading.Tasks.Extensions" Version="4.6.3" />
+  </ItemGroup>
+
+</Project>

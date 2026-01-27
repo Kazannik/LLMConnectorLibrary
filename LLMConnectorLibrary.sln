@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36908.2
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LLMConnectorLibrary", "LLMConnectorLibrary\LLMConnectorLibrary.csproj", "{74CBE48F-AE5D-41D2-82B0-D2C9158E219A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestConsoleApp", "TestConsoleApp\TestConsoleApp.csproj", "{57CF2F4D-BDE6-4F8B-9338-CB93C145399F}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{74CBE48F-AE5D-41D2-82B0-D2C9158E219A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{74CBE48F-AE5D-41D2-82B0-D2C9158E219A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{74CBE48F-AE5D-41D2-82B0-D2C9158E219A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{74CBE48F-AE5D-41D2-82B0-D2C9158E219A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{57CF2F4D-BDE6-4F8B-9338-CB93C145399F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{57CF2F4D-BDE6-4F8B-9338-CB93C145399F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{57CF2F4D-BDE6-4F8B-9338-CB93C145399F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{57CF2F4D-BDE6-4F8B-9338-CB93C145399F}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {FC6C74E6-42EA-4AE9-9509-D367BDAC1B6C}
+	EndGlobalSection
+EndGlobal
