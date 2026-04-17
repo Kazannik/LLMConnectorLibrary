@@ -7,14 +7,14 @@ namespace LLMConnectorLibrary.WorkerArgs
 		string model,
 		string systemMessage,
 		IEnumerable<string> userMessages,
-		string input,
+		IEnumerable<(int key, string description)> store,
 		object tag)
 	{
 		public readonly MessageType MessageType = type;
 		public readonly string Model = model;
 		public readonly string SystemMessage = systemMessage;
 		public readonly IEnumerable<string> UserMessages = userMessages;
-		public readonly string Input = input;
+		public readonly IEnumerable<(int key, string description)> Store = store;
 		public readonly object Tag = tag;
 
 		public WorkerState(
@@ -26,20 +26,20 @@ namespace LLMConnectorLibrary.WorkerArgs
 				model: model,
 				systemMessage: systemMessage,
 				userMessages: userMessages,
-				input: string.Empty,
+				store: [],
 				tag: tag)
 		{
 		}
 
 		public WorkerState(
 			string model,
-			string input,
+			IEnumerable<(int key, string description)> store,
 			object tag) : this(
 				type: MessageType.Embedding,
 				model: model,
 				systemMessage: string.Empty,
 				userMessages: [],
-				input: input,
+				store: store,
 				tag: tag)
 		{
 		}
