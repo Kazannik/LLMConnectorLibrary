@@ -9,8 +9,11 @@
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <PackAsTool>False</PackAsTool>
     <SignAssembly>False</SignAssembly>
-    <AssemblyOriginatorKeyFile>D:\Kazannik.m.V6\DeveloperScripts\Certificates\Kazannik Software CA 2026.pfx</AssemblyOriginatorKeyFile>
-    <DelaySign>False</DelaySign>
+    <NuGetAudit>False</NuGetAudit>
+    <EnforceCodeStyleInBuild>False</EnforceCodeStyleInBuild>
+    <EnableNETAnalyzers>False</EnableNETAnalyzers>
+    <AnalysisLevel>none</AnalysisLevel>
+    <AutoGenerateBindingRedirects>True</AutoGenerateBindingRedirects>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -65,9 +68,5 @@
     <PackageReference Include="System.Threading.Channels" Version="10.0.5" />
     <PackageReference Include="System.Threading.Tasks.Extensions" Version="4.6.3" />
   </ItemGroup>
-
-  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="&quot;C:\Program Files (x86)\Microsoft SDKs\ClickOnce\SignTool\signtool.exe&quot; sign /n &quot;Mikhail Kazannik Software&quot; /t http://timestamp.digicert.com /fd SHA256 /a $(TargetPath)" />
-  </Target>
 
 </Project>

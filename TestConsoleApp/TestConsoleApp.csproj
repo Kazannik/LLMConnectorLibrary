@@ -55,8 +55,10 @@
       <Name>LLMConnectorLibrary</Name>
     </ProjectReference>
   </ItemGroup>
-
-  
-  
+  <ItemGroup>
+    <PackageReference Include="OpenAI">
+      <Version>2.9.1</Version>
+    </PackageReference>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
