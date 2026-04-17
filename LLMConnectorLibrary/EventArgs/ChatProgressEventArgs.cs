@@ -7,9 +7,9 @@ namespace LLMConnectorLibrary.EventArgs
 		public string Model { get; }
 		public string SystemMessage { get; }
 		public IEnumerable<string> UserMessages { get; }
-		public object Tag { get; }
+		public object? Tag { get; }
 
-		internal ChatProgressEventArgs(string model, string systemMessage, IEnumerable<string> userMessages, object tag) : base()
+		internal ChatProgressEventArgs(string model, string systemMessage, IEnumerable<string> userMessages, object? tag) : base()
 		{
 			Model = model;
 			SystemMessage = systemMessage;

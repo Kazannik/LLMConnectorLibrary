@@ -26,39 +26,39 @@ namespace LLMConnectorLibrary.Embeddings
 			};
 
 
-			List<ParagraphVector> paragraphVectors =
-[
-	new() {
-			Key = 0,
-			DocumentName = "Azure App Service",
-			Description = "Host .NET, Java, Node.js, and Python web applications and APIs in a fully managed Azure service. You only need to deploy your code to Azure. Azure takes care of all the infrastructure management like high availability, load balancing, and autoscaling."
-	},
-	new() {
-			Key = 1,
-			DocumentName = "Azure Service Bus",
-			Description = "A fully managed enterprise message broker supporting both point to point and publish-subscribe integrations. It's ideal for building decoupled applications, queue-based load leveling, or facilitating communication between microservices."
-	},
-	new() {
-			Key = 2,
-			DocumentName = "Azure Blob Storage",
-			Description = "Azure Blob Storage allows your applications to store and retrieve files in the cloud. Azure Storage is highly scalable to store massive amounts of data and data is stored redundantly to ensure high availability."
-	},
-	new() {
-			Key = 3,
-			DocumentName = "Microsoft Entra ID",
-			Description = "Manage user identities and control access to your apps, data, and resources."
-	},
-	new() {
-			Key = 4,
-			DocumentName = "Azure Key Vault",
-			Description = "Store and access application secrets like connection strings and API keys in an encrypted vault with restricted access to make sure your secrets and your application aren't compromised."
-	},
-	new() {
-			Key = 5,
-			DocumentName = "Azure AI Search",
-			Description = "Information retrieval at scale for traditional and conversational search applications, with security and options for AI enrichment and vectorization."
-	}
-];
+			List<ParagraphVector> paragraphVectors = [];
+			//[
+			//	new() {
+			//			Key = 0,
+			//			DocumentName = "Azure App Service",
+			//			Description = "Host .NET, Java, Node.js, and Python web applications and APIs in a fully managed Azure service. You only need to deploy your code to Azure. Azure takes care of all the infrastructure management like high availability, load balancing, and autoscaling."
+			//	},
+			//	new() {
+			//			Key = 1,
+			//			DocumentName = "Azure Service Bus",
+			//			Description = "A fully managed enterprise message broker supporting both point to point and publish-subscribe integrations. It's ideal for building decoupled applications, queue-based load leveling, or facilitating communication between microservices."
+			//	},
+			//	new() {
+			//			Key = 2,
+			//			DocumentName = "Azure Blob Storage",
+			//			Description = "Azure Blob Storage allows your applications to store and retrieve files in the cloud. Azure Storage is highly scalable to store massive amounts of data and data is stored redundantly to ensure high availability."
+			//	},
+			//	new() {
+			//			Key = 3,
+			//			DocumentName = "Microsoft Entra ID",
+			//			Description = "Manage user identities and control access to your apps, data, and resources."
+			//	},
+			//	new() {
+			//			Key = 4,
+			//			DocumentName = "Azure Key Vault",
+			//			Description = "Store and access application secrets like connection strings and API keys in an encrypted vault with restricted access to make sure your secrets and your application aren't compromised."
+			//	},
+			//	new() {
+			//			Key = 5,
+			//			DocumentName = "Azure AI Search",
+			//			Description = "Information retrieval at scale for traditional and conversational search applications, with security and options for AI enrichment and vectorization."
+			//	}
+			//];
 
 
 
@@ -100,11 +100,10 @@ namespace LLMConnectorLibrary.Embeddings
 
 			await foreach (VectorSearchResult<ParagraphVector> result in results)
 			{
-				Console.WriteLine($"Name: {result.Record.DocumentName}");
+				//Console.WriteLine($"Name: {result.Record.DocumentName}");
 				Console.WriteLine($"Description: {result.Record.Description}");
 				Console.WriteLine($"Vector match score: {result.Score}");
 			}
 		}
-
 	}
 }

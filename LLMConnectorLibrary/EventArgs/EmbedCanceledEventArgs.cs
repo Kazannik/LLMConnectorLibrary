@@ -7,13 +7,13 @@ namespace LLMConnectorLibrary.EventArgs
 	{
 		public bool Cancel { get; }
 		public bool Error { get; }
-		public Exception Exception { get; }
+		public Exception? Exception { get; }
 
-		internal EmbedCanceledEventArgs(string model, IEnumerable<string> values, object tag) :
+		internal EmbedCanceledEventArgs(string model, IEnumerable<(int key, string description)> values, object? tag) :
 			this(model: model, values: values, tag: tag, cancel: true, error: false, exception: null)
 		{ }
 
-		internal EmbedCanceledEventArgs(string model, IEnumerable<string> values, object tag, bool cancel, bool error, Exception exception) :
+		internal EmbedCanceledEventArgs(string model, IEnumerable<(int key, string description)> values, object? tag, bool cancel, bool error, Exception? exception) :
 			base(model: model, values: values, tag: tag)
 		{
 			Cancel = cancel;

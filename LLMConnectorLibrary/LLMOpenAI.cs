@@ -21,17 +21,48 @@ namespace LLMConnectorLibrary
 	public class LLMOpenAI
 	{
 		private const string OPENAI_API_KEY = "OPENAI_API_KEY";
+		private const string RELATIVE_URI = "v1";
 
-		public static IEnumerable<string> GetModelsName(Uri uri)
+		private static readonly IDictionary<Uri, OpenAIClient> openAIClientCollection = new Dictionary<Uri, OpenAIClient>();
+		private static TimeSpan _timeout;
+
+		private static OpenAIClient GetOpenAIClient(Uri uri, TimeSpan timeout)
 		{
-			return GetModels(uri: uri).Select(x => x.Id);
+			Uri baseUri = new(uri, RELATIVE_URI);
+
+			if (!openAIClientCollection.ContainsKey(baseUri))
+			{
+				openAIClientCollection.Add(baseUri, CreateOpenAIClient(uri: baseUri, timeout: timeout));
+			}
+			else if (_timeout != timeout)
+			{
+				openAIClientCollection[baseUri] = CreateOpenAIClient(uri: baseUri, timeout: timeout);
+			}
+			return openAIClientCollection[baseUri];
 		}
 
-		public static IEnumerable<OpenAIModel> GetModels(Uri uri)
+		private static OpenAIClient CreateOpenAIClient(Uri uri, TimeSpan timeout)
+		{
+			_timeout = timeout;
+
+			OpenAIClientOptions options = new()
+			{
+				Endpoint = uri,
+				NetworkTimeout = timeout,
+			};
+			return new(new ApiKeyCredential(OPENAI_API_KEY), options);
+		}
+
+		public static IEnumerable<string> GetModelsName(Uri uri, TimeSpan timeout)
+		{
+			return GetModels(uri: uri, timeout).Select(x => x.Id);
+		}
+
+		public static IEnumerable<OpenAIModel> GetModels(Uri uri, TimeSpan timeout)
 		{
 			try
 			{
-				var modelsResult = GetModelsCollection(uri);
+				var modelsResult = GetModelsCollection(uri, timeout);
 				return [.. modelsResult];
 			}
 			catch (Exception)
@@ -40,9 +71,9 @@ namespace LLMConnectorLibrary
 			}
 		}
 
-		private static OpenAIModelCollection GetModelsCollection(Uri uri)
+		private static OpenAIModelCollection GetModelsCollection(Uri uri, TimeSpan timeout)
 		{
-			OpenAIModelClient modelClient = GetModelClient(uri);
+			OpenAIModelClient modelClient = GetModelClient(uri, timeout);
 			try
 			{
 				var result = modelClient.GetModels();
@@ -54,9 +85,9 @@ namespace LLMConnectorLibrary
 			}
 		}
 
-		private async static Task<OpenAIModelCollection> GetModelsCollectionAsync(Uri uri)
+		private async static Task<OpenAIModelCollection> GetModelsCollectionAsync(Uri uri, TimeSpan timeout)
 		{
-			OpenAIModelClient modelClient = GetModelClient(uri);
+			OpenAIModelClient modelClient = GetModelClient(uri, timeout);
 			try
 			{
 				var result = await modelClient.GetModelsAsync();
@@ -69,23 +100,13 @@ namespace LLMConnectorLibrary
 		}
 
 
-		private static OpenAIModelClient GetModelClient(Uri uri)
+		private static OpenAIModelClient GetModelClient(Uri uri, TimeSpan timeout)
 		{
-			OpenAIClientOptions options = new()
-			{
-				Endpoint = uri
-			};
-
-			bool isAvailable = Utils.Net.CheckHostByHttpAsync(
-				new Uri(baseUri: options.Endpoint, relativeUri: options.Endpoint.AbsolutePath + "/models"))
-				.GetAwaiter().GetResult();
+			bool isAvailable = Utils.Net.CheckHostByHttp(uri);
 
 			if (isAvailable)
 			{
-				OpenAIClient client = new(
-					new ApiKeyCredential(OPENAI_API_KEY),
-					options);
-
+				OpenAIClient client = GetOpenAIClient(uri, timeout);
 				return client.GetOpenAIModelClient();
 			}
 			else
@@ -94,18 +115,9 @@ namespace LLMConnectorLibrary
 			}
 		}
 
-		public async static Task<string> SendMessageAsync(Uri uri, string model, string systemMessage, IEnumerable<string> userMessages)
+		public async static Task<string> SendMessageAsync(Uri uri, TimeSpan timeout, string model, ChatOptions options, string systemMessage, IEnumerable<string> userMessages)
 		{
-			OpenAIClientOptions options = new()
-			{
-				Endpoint = uri,
-				NetworkTimeout = new TimeSpan(hours: 0, minutes: 10, seconds: 0),
-			};
-
-			OpenAIClient client = new(
-				new ApiKeyCredential(OPENAI_API_KEY),
-				options);
-
+			OpenAIClient client = GetOpenAIClient(uri, timeout);
 			ChatClient chatClient = client.GetChatClient(model: model);
 
 			List<ChatMessage> chatMessages = [];
@@ -123,31 +135,146 @@ namespace LLMConnectorLibrary
 				chatMessages,
 				new ChatCompletionOptions()
 				{
-					MaxOutputTokenCount = 2048,
-					Temperature = 0,
+					MaxOutputTokenCount = options.MaxOutputTokenCount,		
+					FrequencyPenalty = options.FrequencyPenalty,
+					PresencePenalty = options.PresencePenalty,
+					Temperature = options.Temperature,
+					TopP = options.TopP, 
 				});
 			return creativeWriterResult.Value.Content[0].Text;
 		}
 
-		public async static Task<ReadOnlyMemory<float>> GetEmbeddingAsync(Uri uri, string model, string input)
+		public readonly struct ChatOptions
 		{
-			OpenAIClientOptions options = new()
-			{
-				Endpoint = uri,
-				NetworkTimeout = new TimeSpan(hours: 0, minutes: 10, seconds: 0),
-			};
+			public static readonly ChatOptions Empty = new(4096, 0, 0, 0, 0);
 
-			IEmbeddingGenerator<string, Embedding<float>> generator =
-				new OpenAIClient(new ApiKeyCredential(OPENAI_API_KEY), options)
+			public static readonly ChatOptions Standard = new(4096, 0.3f, 0, 0.3f, 0.2f);
+
+			private ChatOptions(int? maxOutputTokenCount,
+				float? frequencyPenalty, 
+				float? presencePenalty, 
+				float? temperature, 
+				float? topP)
+			{
+				MaxOutputTokenCount = maxOutputTokenCount;
+				FrequencyPenalty = frequencyPenalty;
+				PresencePenalty = presencePenalty;
+				Temperature = temperature;
+				TopP = topP;
+			}
+
+			/// <summary>
+			/// Максимальное количество токенов в ответе.
+			/// Значение по умолчанию 4096.
+			/// </summary>
+			public int? MaxOutputTokenCount { get; }
+
+			/// <summary>
+			/// Frequency penalty ограничивает токены в зависимости от того, как часто они встречаются в тексте на данный момент.
+			/// Если вы присутствует чрезмерное использование одних и тех же слов в сгенерированном результате, возможно,
+			/// следует увеличить значение этого параметра.
+			/// Значения от -2 до 2. Значение по умолчанию: 0.
+			/// </summary>
+			public float? FrequencyPenalty { get; }
+
+			/// <summary>
+			/// Presence penalty ограничивает токены на основании того, появляются ли они в сгенерированном тексте до сих пор,
+			/// независимо от того, как часто они встречаются.
+			/// Значения от -2.0 до 2.0. Значение по умолчанию: 0.
+			/// </summary>
+			public float? PresencePenalty { get; }
+
+			/// <summary>
+			/// Temperature контролирует случайность и креативность генерируемого текста. Низкие значения делают модель более
+			/// детерминированной и ориентированной на наиболее вероятные ответы. Это подходит для задач, требующих точности
+			/// и согласованности, например, для ответов на фактические вопросы. Высокие значения вносят креативность и 
+			/// разнообразие, позволяя модели исследовать менее вероятные варианты. Это полезно для творческого письма, 
+			/// мозгового штурма, создания стихов.
+			/// Диапазон температур обычно составляет от 0.0 до 2.0. Значение по умолчанию: 0.
+			/// </summary>
+			public float? Temperature { get; }
+
+			/// <summary>
+			/// Top-P (nucleus sampling) — метод сэмплирования, который управляет уровнем случайности и креативности при 
+			/// выборе следующего токена в генерируемой последовательности. Высокое значение p (близкое к 1) включает больше токенов
+			/// с меньшими вероятностями. Результат становится более случайным и разнообразным, но может иногда терять связность
+			/// или релевантность. Низкое значение p(например, 0,5 или 0,7) включает меньше самых вероятных токенов. Результат
+			/// более предсказуемый, сфокусированный, но может быть менее интересным и склонным к повторениям.
+			/// Диапазон от 0.0 до 1.0. Значение по умолчанию: 0.
+			/// </summary>
+			public float? TopP { get; }
+		}
+
+		public async static Task<ReadOnlyMemory<float>> GetEmbeddingAsync(Uri uri, TimeSpan timeout, string model, string input)
+		{
+			OpenAIClient client = GetOpenAIClient(uri, timeout);
+
+			IEmbeddingGenerator<string, Embedding<float>> generator = client
 				.GetEmbeddingClient(model: model)
 				.AsIEmbeddingGenerator();
 
 			return await generator.GenerateVectorAsync(input);
 		}
 
+		public static IEnumerable<string> TestEmbedding(Uri uri, TimeSpan timeout, IEnumerable<string> models)
+		{
+			OpenAIClient client = GetOpenAIClient(uri, timeout);
+
+			List<string> result = [];
+			foreach (string model in models)
+			{
+				IEmbeddingGenerator<string, Embedding<float>> generator = client
+					.GetEmbeddingClient(model: model)
+					.AsIEmbeddingGenerator(2);
+				try
+				{
+					generator.GenerateVectorAsync("test").GetAwaiter().GetResult();
+					result.Add(model);
+				}
+				catch (Exception)
+				{
+				}
+				finally
+				{
+					generator.Dispose();
+				}
+			}
+			return result;
+		}
+
+		public delegate void ProgressChanged(int received, int totalToReceive, int progressPercentage);
+
+		public async static Task<IEnumerable<(int key, string description, ReadOnlyMemory<float> vector)>> GetEmbeddingAsync(
+			Uri uri,
+			TimeSpan timeout,
+			string model,
+			IEnumerable<(int key, string description)> store,
+			ProgressChanged progress)
+		{
+			OpenAIClient client = GetOpenAIClient(uri, timeout);
+
+
+			IEmbeddingGenerator<string, Embedding<float>> generator = client
+				.GetEmbeddingClient(model: model)
+				.AsIEmbeddingGenerator();
+
+			List<(int key, string description, ReadOnlyMemory<float> vector)> result = [];
+			int received = 0, totalToReceive = store.Count();
+
+			foreach (var (key, description) in store)
+			{
+				ReadOnlyMemory<float> vector = await generator.GenerateVectorAsync(description);
+				result.Add(new(key, description, vector));
+				received++;
+				double percent = (double)received / totalToReceive * 100;
+				progress.Invoke(received, totalToReceive, (int)percent);
+			}
+			return result;
+		}
+
 		public static void CreateMultipleClients()
 		{
-			OpenAIClientOptions options = new OpenAIClientOptions
+			OpenAIClientOptions options = new()
 			{
 				Endpoint = new Uri("")
 			};
@@ -176,7 +303,6 @@ namespace LLMConnectorLibrary
 			string description = creativeWriterResult.Value.Content[0].Text;
 			Console.WriteLine($"Creative helper's creature description:\n{description}");
 		}
-
 
 		#region
 
@@ -225,7 +351,7 @@ namespace LLMConnectorLibrary
 				NetworkTimeout = new TimeSpan(hours: 0, minutes: 10, seconds: 0),
 			};
 
-			OpenAIClient client = new OpenAIClient(
+			OpenAIClient client = new(
 				new ApiKeyCredential(OPENAI_API_KEY),
 				openAIClientOptions);
 

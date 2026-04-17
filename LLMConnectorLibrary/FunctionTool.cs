@@ -11,15 +11,14 @@ namespace LLMConnectorLibrary
 	{
 		public ChatTool GetChatTool()
 		{
-			BinaryData parameters = null;
+			BinaryData? parameters = null;
 
 			if (Parameters != null)
 			{
 				parameters = SerializePropertiesToBinaryData(Parameters, Strict);
 			}
 
-
-			bool? strict = Strict ? true : default;
+			bool? strict = Strict;
 
 			return ChatTool.CreateFunctionTool(
 			functionName: Name,
@@ -37,17 +36,17 @@ namespace LLMConnectorLibrary
 		/// <summary>
 		/// Имя функции.
 		/// </summary>
-		public string Name { get; }
+		public string? Name { get; }
 
 		/// <summary>
 		/// Подробная информация о том, когда и как использовать эту функцию
 		/// </summary>
-		public string Description { get; }
+		public string? Description { get; }
 
 		/// <summary>
 		/// Входные аргументы функции.
 		/// </summary>
-		public Parameter Parameters { get; }
+		public Parameter? Parameters { get; }
 
 		/// <summary>
 		/// Следует ли применять строгий режим при вызове функции. При применении строгого режима AdditionalProperties = false, а все поля должны быть обязательными (включены в Required).
@@ -58,7 +57,7 @@ namespace LLMConnectorLibrary
 		{
 			public string Type => "object";
 
-			public IEnumerable<Property> Properties { get; }
+			public IEnumerable<Property>? Properties { get; }
 
 			/// <summary>
 			/// Возможны ли дополнительные свойства. По умолчанию значение true. Значение false указывает, что дополнительные свойства запрещены.

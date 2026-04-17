@@ -1,4 +1,4 @@
-﻿// Ignore Spelling: Utils
+﻿// Ignore Spelling: Utils uri
 
 using System;
 using System.Net.Http;
@@ -9,14 +9,30 @@ namespace LLMConnectorLibrary.Utils
 {
 	public static class Net
 	{
-		public static bool CheckHostByPing(string hostNameOrAddress, int timeout = 1000)
+		public const int DEFAULT_TIMEOUT = 100;
+
+		private static HttpClient? _httpClient;
+		private static HttpClient GetHttpClient(int timeout = DEFAULT_TIMEOUT)
 		{
-			Task<bool> task = CheckHostByPingAsync(hostNameOrAddress: hostNameOrAddress, timeout: timeout);
-			task.Wait();
-			return task.Result;
+			TimeSpan timeoutSpan = TimeSpan.FromSeconds(timeout);
+
+			if (_httpClient == null || _httpClient.Timeout != timeoutSpan)
+			{
+				_httpClient = new HttpClient
+				{
+					Timeout = timeoutSpan
+				};
+			}
+			return _httpClient;
 		}
 
-		public static async Task<bool> CheckHostByPingAsync(string hostNameOrAddress, int timeout = 1000)
+		public static bool CheckHostByPing(string hostNameOrAddress, int timeout = DEFAULT_TIMEOUT)
+		{
+			return CheckHostByPingAsync(hostNameOrAddress: hostNameOrAddress, timeout: timeout)
+				.GetAwaiter().GetResult();
+		}
+
+		public static async Task<bool> CheckHostByPingAsync(string hostNameOrAddress, int timeout = DEFAULT_TIMEOUT)
 		{
 			Ping ping = new();
 			try
@@ -30,29 +46,25 @@ namespace LLMConnectorLibrary.Utils
 			}
 		}
 
-		public static bool CheckHostByHttp(Uri uri, double timeout = 10)
+		public static async Task<bool> CheckHostByHttpAsync(Uri uri, int timeout = DEFAULT_TIMEOUT)
 		{
-			Task<bool> task = CheckHostByHttpAsync(uri: uri, timeout: timeout);
-			task.Wait();
-			return task.Result;
+			return await Task.FromResult(CheckHostByHttp(uri: uri, timeout: timeout));
 		}
 
-		public static async Task<bool> CheckHostByHttpAsync(Uri uri, double timeout = 10)
+		public static bool CheckHostByHttp(string host, int timeout = DEFAULT_TIMEOUT)
 		{
-			HttpClient client = new()
-			{
-				Timeout = TimeSpan.FromSeconds(timeout)
-			};
+			return CheckHostByHttp(new Uri(host), timeout);
+		}
+
+		public static bool CheckHostByHttp(Uri uri, int timeout = DEFAULT_TIMEOUT)
+		{
 			try
 			{
+			HttpClient client = GetHttpClient(timeout);
 				HttpResponseMessage response = client.GetAsync(uri).GetAwaiter().GetResult();
 				return response.StatusCode == System.Net.HttpStatusCode.OK;
 			}
-			catch (HttpRequestException)
-			{
-				return false;
-			}
-			catch (TaskCanceledException)
+			catch (Exception)
 			{
 				return false;
 			}
