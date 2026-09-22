@@ -1,5 +1,7 @@
 ﻿// Ignore Spelling: Uri
 
+using LLMConnectorLibrary.Authentication;
+using LLMConnectorLibrary.Models;
 using System;
 using System.Collections.Generic;
 
@@ -7,48 +9,44 @@ namespace LLMConnectorLibrary.WorkerArgs
 {
 	internal readonly struct WorkerResult(
 		MessageType type,
-		string model,
+		IModel model,
 		string systemMessage,
 		IEnumerable<string> userMessages,
 		IEnumerable<(int key, string description)> store,
 		string message,
 		IEnumerable<(int key, string description, ReadOnlyMemory<float> vector)> embedding,
 		Exception? exception,
-		Uri uri,
-		TimeSpan timeout,
+		IAuthenticationProfile profile,
 		bool isAvailable,
-		IEnumerable<string> models,
+		ModelsCollection models,
 		object? tag)
 	{
 		public readonly MessageType MessageType = type;
-		public readonly string Model = model;
+		public readonly IModel Model = model;
 		public readonly string SystemMessage = systemMessage;
 		public readonly IEnumerable<string> UserMessages = userMessages;
 		public readonly IEnumerable<(int key, string description)> Store = store;
 		public readonly string Message = message;
 		public readonly IEnumerable<(int key, string description, ReadOnlyMemory<float> vector)> Embedding = embedding;
 		public readonly Exception? Exception = exception;
-		public readonly Uri Uri = uri;
-		public readonly TimeSpan Timeout = timeout;
+		public readonly IAuthenticationProfile Profile = profile;
 		public readonly bool IsAvailable = isAvailable;
-		public readonly IEnumerable<string> Models = models;
+		public readonly ModelsCollection Models = models;
 		public readonly object? Tag = tag;
 
 		public WorkerResult(
-			Uri uri,
-			TimeSpan timeout,
+			IAuthenticationProfile profile,
 			bool isAvailable,
 			object? tag) : this(
 				type: MessageType.Available,
-				model: string.Empty,
+				model: null,
 				systemMessage: string.Empty,
 				userMessages: [],
 				store: [],
 				message: string.Empty,
 				embedding: [],
 				exception: null,
-				uri: uri,
-				timeout: timeout,
+				profile: profile,
 				isAvailable: isAvailable,
 				models: [],
 				tag: tag)
@@ -56,21 +54,19 @@ namespace LLMConnectorLibrary.WorkerArgs
 		}
 
 		public WorkerResult(
-			Uri uri,
-			TimeSpan timeout,
-			IEnumerable<string> models,
+			IAuthenticationProfile profile,
+			ModelsCollection models,
 			bool isAvailable,
 			object? tag) : this(
 				type: MessageType.GetModels,
-				model: string.Empty,
+				model: null,
 				systemMessage: string.Empty,
 				userMessages: [],
 				store: [],
 				message: string.Empty,
 				embedding: [],
 				exception: null,
-				uri: uri,
-				timeout: timeout,
+				profile: profile,
 				isAvailable: isAvailable,
 				models: models,
 				tag: tag)
@@ -78,12 +74,29 @@ namespace LLMConnectorLibrary.WorkerArgs
 		}
 
 		public WorkerResult(
-			string model,
+			IAuthenticationProfile profile,
+			Exception? exception,
+			object? tag) : this(
+				type: MessageType.Embedding,
+				model: null,
+				systemMessage: string.Empty,
+				userMessages: [],
+				store: [],
+				message: string.Empty,
+				embedding: [],
+				exception: exception,
+				profile: profile,
+				isAvailable: false,
+				models: [],
+				tag: tag)
+		{
+		}
+
+		public WorkerResult(
+			IModel model,
 			string systemMessage,
 			IEnumerable<string> userMessages,
 			string message,
-			Uri uri,
-			TimeSpan timeout,
 			object? tag) : this(
 				type: MessageType.Chat,
 				model: model,
@@ -93,8 +106,7 @@ namespace LLMConnectorLibrary.WorkerArgs
 				message: message,
 				embedding: [],
 				exception: null,
-				uri: uri,
-				timeout: timeout,
+				profile: model.Profile,
 				isAvailable: true,
 				models: [],
 				tag: tag)
@@ -102,12 +114,10 @@ namespace LLMConnectorLibrary.WorkerArgs
 		}
 
 		public WorkerResult(
-			string model,
+			IModel model,
 			string systemMessage,
 			IEnumerable<string> userMessages,
 			Exception? exception,
-			Uri uri,
-			TimeSpan timeout,
 			object? tag) : this(
 				type: MessageType.Chat,
 				model: model,
@@ -117,8 +127,7 @@ namespace LLMConnectorLibrary.WorkerArgs
 				message: string.Empty,
 				embedding: [],
 				exception: exception,
-				uri: uri,
-				timeout: timeout,
+				profile: model.Profile,
 				isAvailable: false,
 				models: [],
 				tag: tag)
@@ -126,11 +135,9 @@ namespace LLMConnectorLibrary.WorkerArgs
 		}
 
 		public WorkerResult(
-			string model,
+			IModel model,
 			IEnumerable<(int key, string description)> store,
 			IEnumerable<(int key, string description, ReadOnlyMemory<float> vector)> embedding,
-			Uri uri,
-			TimeSpan timeout,
 			object? tag) : this(
 				type: MessageType.Embedding,
 				model: model,
@@ -140,8 +147,7 @@ namespace LLMConnectorLibrary.WorkerArgs
 				message: string.Empty,
 				embedding: embedding,
 				exception: null,
-				uri: uri,
-				timeout: timeout,
+				profile: model.Profile,
 				isAvailable: true,
 				models: [],
 				tag: tag)
@@ -149,11 +155,9 @@ namespace LLMConnectorLibrary.WorkerArgs
 		}
 
 		public WorkerResult(
-			string model,
+			IModel model,
 			IEnumerable<(int key, string description)> store,
 			Exception? exception,
-			Uri uri,
-			TimeSpan timeout,
 			object? tag) : this(
 				type: MessageType.Embedding,
 				model: model,
@@ -163,8 +167,7 @@ namespace LLMConnectorLibrary.WorkerArgs
 				message: string.Empty,
 				embedding: [],
 				exception: exception,
-				uri: uri,
-				timeout: timeout,
+				profile: model.Profile,
 				isAvailable: false,
 				models: [],
 				tag: tag)

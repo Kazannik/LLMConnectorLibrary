@@ -1,19 +1,19 @@
 ﻿// Ignore Spelling: Uri
 
-using System;
-using System.Collections.Generic;
+using LLMConnectorLibrary.Authentication;
+using LLMConnectorLibrary.Models;
 
 namespace LLMConnectorLibrary.EventArgs
 {
 	public class ModelsCollectionCompletedEventArgs : System.EventArgs
 	{
-		public Uri Uri { get; }
-		public IEnumerable<string> Models { get; }
+		public IAuthenticationProfile Profile { get; }
+		public ModelsCollection Models { get; }
 		public object? Tag { get; }
 
-		internal ModelsCollectionCompletedEventArgs(Uri uri, IEnumerable<string> models, object? tag) : base()
+		internal ModelsCollectionCompletedEventArgs(IAuthenticationProfile profile, ModelsCollection models, object? tag) : base()
 		{
-			Uri = uri;
+			Profile = profile;
 			Models = models;
 			Tag = tag;
 		}

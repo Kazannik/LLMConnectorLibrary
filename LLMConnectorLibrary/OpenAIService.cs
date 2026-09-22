@@ -1,5 +1,8 @@
 ﻿// Ignore Spelling: uri OPENAI Llm
 
+using GigaChat;
+using LLMConnectorLibrary.Authentication;
+using LLMConnectorLibrary.Models;
 using Microsoft.Extensions.AI;
 using OpenAI;
 using OpenAI.Chat;
@@ -7,8 +10,12 @@ using OpenAI.Embeddings;
 using OpenAI.Models;
 using System;
 using System.ClientModel;
+using System.ClientModel.Primitives;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
+using System.Net.Http;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -18,107 +25,135 @@ using ChatMessage = OpenAI.Chat.ChatMessage;
 
 namespace LLMConnectorLibrary
 {
-	public class LLMOpenAI
+	public static class OpenAIService
 	{
-		private const string OPENAI_API_KEY = "OPENAI_API_KEY";
-		private const string RELATIVE_URI = "v1";
+		private const string DEFAULT_OPENAI_API_KEY = "OPENAI_API_KEY";
 
-		private static readonly IDictionary<Uri, OpenAIClient> openAIClientCollection = new Dictionary<Uri, OpenAIClient>();
-		private static TimeSpan _timeout;
-
-		private static OpenAIClient GetOpenAIClient(Uri uri, TimeSpan timeout)
+		public static OpenAIClient CreateOpenAIClient(IClientOptions options, string key = DEFAULT_OPENAI_API_KEY)
 		{
-			Uri baseUri = new(uri, RELATIVE_URI);
-
-			if (!openAIClientCollection.ContainsKey(baseUri))
+			OpenAIClientOptions clientOptions = new()
 			{
-				openAIClientCollection.Add(baseUri, CreateOpenAIClient(uri: baseUri, timeout: timeout));
-			}
-			else if (_timeout != timeout)
-			{
-				openAIClientCollection[baseUri] = CreateOpenAIClient(uri: baseUri, timeout: timeout);
-			}
-			return openAIClientCollection[baseUri];
-		}
-
-		private static OpenAIClient CreateOpenAIClient(Uri uri, TimeSpan timeout)
-		{
-			_timeout = timeout;
-
-			OpenAIClientOptions options = new()
-			{
-				Endpoint = uri,
-				NetworkTimeout = timeout,
+				Endpoint = options.Endpoint,
+				NetworkTimeout = options.Timeout,
 			};
-			return new(new ApiKeyCredential(OPENAI_API_KEY), options);
+			return new(new ApiKeyCredential(key), clientOptions);
 		}
 
-		public static IEnumerable<string> GetModelsName(Uri uri, TimeSpan timeout)
+		public static OpenAIClient CreateOpenAIClient(IClientOptions options, X509Certificate2 certificate, string key = DEFAULT_OPENAI_API_KEY)
 		{
-			return GetModels(uri: uri, timeout).Select(x => x.Id);
+			ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
+			ServicePointManager.ServerCertificateValidationCallback = (sender, cert, chain, sslPolicyErrors) => true;
+
+			HttpClientHandler handler = NetService.CreateHttpClientHandler(certificate: certificate);
+			
+			HttpClient httpClient = new(handler);
+			
+			OpenAIClientOptions clientOptions = new()
+			{
+				Transport = new HttpClientPipelineTransport(httpClient),
+				RetryPolicy = new ClientRetryPolicy(maxRetries: 0),
+				Endpoint = options.Endpoint,
+				NetworkTimeout = options.Timeout,
+			};
+			return new(new ApiKeyCredential(key), clientOptions);
 		}
 
-		public static IEnumerable<OpenAIModel> GetModels(Uri uri, TimeSpan timeout)
+
+		private static void AccessTokenValid(IAuthenticationProfile profile)
+		{
+			if (profile.AuthenticationType == AuthenticationTypeEnum.PreAuthentication)
+			{
+				IPreAuthenticationProfile<OpenAIClient> authenticationProfile = (IPreAuthenticationProfile<OpenAIClient>)profile;
+				if (!authenticationProfile.AccessTokenIsValid)
+				{
+					// TODO AccessToken Refresh
+				}
+			}
+		}
+
+		public static IEnumerable<string> GetModelsName(IAuthenticationProfile profile)
+		{
+			return GetModels(profile: profile).Select(x => x.Id);
+		}
+
+		public static ModelsCollection GetModels(IAuthenticationProfile profile)
 		{
 			try
 			{
-				var modelsResult = GetModelsCollection(uri, timeout);
-				return [.. modelsResult];
-			}
-			catch (Exception)
-			{
-				return [];
-			}
-		}
-
-		private static OpenAIModelCollection GetModelsCollection(Uri uri, TimeSpan timeout)
-		{
-			OpenAIModelClient modelClient = GetModelClient(uri, timeout);
-			try
-			{
-				var result = modelClient.GetModels();
-				return result.Value;
+				OpenAIModelCollection modelsResult = GetModelsCollection(profile: profile);
+				return ModelsCollection.Create(profile, modelsResult);
 			}
 			catch (Exception ex)
 			{
-				throw new Exception("Ошибка при подключении клиента OpenAI.", ex.InnerException);
+				throw new Exception(ex.Message);
 			}
 		}
 
-		private async static Task<OpenAIModelCollection> GetModelsCollectionAsync(Uri uri, TimeSpan timeout)
+		public static async Task<ModelsCollection> GetModelsAsync(IAuthenticationProfile profile)
 		{
-			OpenAIModelClient modelClient = GetModelClient(uri, timeout);
 			try
 			{
-				var result = await modelClient.GetModelsAsync();
-				return result.Value;
+				OpenAIModelCollection modelsResult = await GetModelsCollectionAsync(profile: profile);
+				return ModelsCollection.Create(profile, modelsResult);
 			}
 			catch (Exception ex)
 			{
-				throw new Exception("Ошибка при подключении клиента OpenAI.", ex.InnerException);
+				throw new Exception(ex.Message);
 			}
 		}
 
-
-		private static OpenAIModelClient GetModelClient(Uri uri, TimeSpan timeout)
+		private static OpenAIModelCollection GetModelsCollection(IAuthenticationProfile profile)
 		{
-			bool isAvailable = Utils.Net.CheckHostByHttp(uri);
-
-			if (isAvailable)
+			OpenAIModelClient modelClient = GetModelClient(profile: profile);
+			try
 			{
-				OpenAIClient client = GetOpenAIClient(uri, timeout);
-				return client.GetOpenAIModelClient();
+				ClientResult<OpenAIModelCollection>? result = modelClient.GetModels();
+				return result.Value;
 			}
-			else
+			catch (HttpRequestException ex)
 			{
-				throw new Exception(string.Format("Хост по адресу [{0}] не доступен.", uri));
+				throw new ApplicationException($"Ошибка при отправке HTTP запроса: {ex.Message}", ex);
+			}
+			catch (Exception ex)
+			{
+				throw new ApplicationException($"Неизвестная ошибка: {ex.Message}", ex);
 			}
 		}
 
-		public async static Task<string> SendMessageAsync(Uri uri, TimeSpan timeout, string model, ChatOptions options, string systemMessage, IEnumerable<string> userMessages)
+		private async static Task<OpenAIModelCollection> GetModelsCollectionAsync(IAuthenticationProfile profile)
 		{
-			OpenAIClient client = GetOpenAIClient(uri, timeout);
-			ChatClient chatClient = client.GetChatClient(model: model);
+			OpenAIModelClient modelClient = GetModelClient(profile: profile);
+			try
+			{
+				var result = await modelClient.GetModelsAsync().ConfigureAwait(false);
+				return result.Value;
+			}
+			catch (HttpRequestException ex)
+			{
+				throw new ApplicationException($"Ошибка при отправке HTTP запроса: {ex.Message}", ex);
+			}
+			catch (Exception ex)
+			{
+				throw new ApplicationException($"Неизвестная ошибка: {ex.Message}", ex);
+			}
+		}
+
+		private static OpenAIModelClient GetModelClient(IAuthenticationProfile profile)
+		{
+			AccessTokenValid(profile: profile);
+
+			OpenAIClient client = (OpenAIClient)profile.LLMBaseClient;
+
+			return client.GetOpenAIModelClient();
+		}
+
+		public async static Task<string> SendMessageAsync(IModel model, IChatOptions options, string systemMessage, IEnumerable<string> userMessages)
+		{
+			AccessTokenValid(profile: model.Profile);
+
+			OpenAIClient client = (OpenAIClient)model.Profile.LLMBaseClient;
+
+			ChatClient chatClient = client.GetChatClient(model: model.Id);
 
 			List<ChatMessage> chatMessages = [];
 
@@ -135,90 +170,35 @@ namespace LLMConnectorLibrary
 				chatMessages,
 				new ChatCompletionOptions()
 				{
-					MaxOutputTokenCount = options.MaxOutputTokenCount,		
+					MaxOutputTokenCount = options.MaxOutputTokenCount,
 					FrequencyPenalty = options.FrequencyPenalty,
 					PresencePenalty = options.PresencePenalty,
 					Temperature = options.Temperature,
-					TopP = options.TopP, 
-				});
+					TopP = options.TopP,
+				})
+				.ConfigureAwait(false);
 			return creativeWriterResult.Value.Content[0].Text;
 		}
 
-		public readonly struct ChatOptions
+		public async static Task<ReadOnlyMemory<float>> GetEmbeddingAsync(IModel model, string input)
 		{
-			public static readonly ChatOptions Empty = new(4096, 0, 0, 0, 0);
+			AccessTokenValid(profile: model.Profile);
 
-			public static readonly ChatOptions Standard = new(4096, 0.3f, 0, 0.3f, 0.2f);
-
-			private ChatOptions(int? maxOutputTokenCount,
-				float? frequencyPenalty, 
-				float? presencePenalty, 
-				float? temperature, 
-				float? topP)
-			{
-				MaxOutputTokenCount = maxOutputTokenCount;
-				FrequencyPenalty = frequencyPenalty;
-				PresencePenalty = presencePenalty;
-				Temperature = temperature;
-				TopP = topP;
-			}
-
-			/// <summary>
-			/// Максимальное количество токенов в ответе.
-			/// Значение по умолчанию 4096.
-			/// </summary>
-			public int? MaxOutputTokenCount { get; }
-
-			/// <summary>
-			/// Frequency penalty ограничивает токены в зависимости от того, как часто они встречаются в тексте на данный момент.
-			/// Если вы присутствует чрезмерное использование одних и тех же слов в сгенерированном результате, возможно,
-			/// следует увеличить значение этого параметра.
-			/// Значения от -2 до 2. Значение по умолчанию: 0.
-			/// </summary>
-			public float? FrequencyPenalty { get; }
-
-			/// <summary>
-			/// Presence penalty ограничивает токены на основании того, появляются ли они в сгенерированном тексте до сих пор,
-			/// независимо от того, как часто они встречаются.
-			/// Значения от -2.0 до 2.0. Значение по умолчанию: 0.
-			/// </summary>
-			public float? PresencePenalty { get; }
-
-			/// <summary>
-			/// Temperature контролирует случайность и креативность генерируемого текста. Низкие значения делают модель более
-			/// детерминированной и ориентированной на наиболее вероятные ответы. Это подходит для задач, требующих точности
-			/// и согласованности, например, для ответов на фактические вопросы. Высокие значения вносят креативность и 
-			/// разнообразие, позволяя модели исследовать менее вероятные варианты. Это полезно для творческого письма, 
-			/// мозгового штурма, создания стихов.
-			/// Диапазон температур обычно составляет от 0.0 до 2.0. Значение по умолчанию: 0.
-			/// </summary>
-			public float? Temperature { get; }
-
-			/// <summary>
-			/// Top-P (nucleus sampling) — метод сэмплирования, который управляет уровнем случайности и креативности при 
-			/// выборе следующего токена в генерируемой последовательности. Высокое значение p (близкое к 1) включает больше токенов
-			/// с меньшими вероятностями. Результат становится более случайным и разнообразным, но может иногда терять связность
-			/// или релевантность. Низкое значение p(например, 0,5 или 0,7) включает меньше самых вероятных токенов. Результат
-			/// более предсказуемый, сфокусированный, но может быть менее интересным и склонным к повторениям.
-			/// Диапазон от 0.0 до 1.0. Значение по умолчанию: 0.
-			/// </summary>
-			public float? TopP { get; }
-		}
-
-		public async static Task<ReadOnlyMemory<float>> GetEmbeddingAsync(Uri uri, TimeSpan timeout, string model, string input)
-		{
-			OpenAIClient client = GetOpenAIClient(uri, timeout);
+			OpenAIClient client = (OpenAIClient)model.Profile.LLMBaseClient;
 
 			IEmbeddingGenerator<string, Embedding<float>> generator = client
-				.GetEmbeddingClient(model: model)
+				.GetEmbeddingClient(model: model.Id)
 				.AsIEmbeddingGenerator();
 
-			return await generator.GenerateVectorAsync(input);
+			return await generator.GenerateVectorAsync(input)
+				.ConfigureAwait(false);
 		}
 
-		public static IEnumerable<string> TestEmbedding(Uri uri, TimeSpan timeout, IEnumerable<string> models)
+		public static IEnumerable<string> TestEmbedding(IAuthenticationProfile profile, IEnumerable<string> models)
 		{
-			OpenAIClient client = GetOpenAIClient(uri, timeout);
+			AccessTokenValid(profile: profile);
+
+			OpenAIClient client = (OpenAIClient)profile.LLMBaseClient;
 
 			List<string> result = [];
 			foreach (string model in models)
@@ -231,9 +211,7 @@ namespace LLMConnectorLibrary
 					generator.GenerateVectorAsync("test").GetAwaiter().GetResult();
 					result.Add(model);
 				}
-				catch (Exception)
-				{
-				}
+				catch (Exception) { }
 				finally
 				{
 					generator.Dispose();
@@ -245,17 +223,16 @@ namespace LLMConnectorLibrary
 		public delegate void ProgressChanged(int received, int totalToReceive, int progressPercentage);
 
 		public async static Task<IEnumerable<(int key, string description, ReadOnlyMemory<float> vector)>> GetEmbeddingAsync(
-			Uri uri,
-			TimeSpan timeout,
-			string model,
+			IModel model,
 			IEnumerable<(int key, string description)> store,
 			ProgressChanged progress)
 		{
-			OpenAIClient client = GetOpenAIClient(uri, timeout);
+			AccessTokenValid(profile: model.Profile);
 
+			OpenAIClient client = (OpenAIClient)model.Profile.LLMBaseClient;
 
 			IEmbeddingGenerator<string, Embedding<float>> generator = client
-				.GetEmbeddingClient(model: model)
+				.GetEmbeddingClient(model: model.Id)
 				.AsIEmbeddingGenerator();
 
 			List<(int key, string description, ReadOnlyMemory<float> vector)> result = [];
@@ -280,7 +257,7 @@ namespace LLMConnectorLibrary
 			};
 
 			OpenAIClient client = new(
-				new ApiKeyCredential(OPENAI_API_KEY),
+				new ApiKeyCredential(DEFAULT_OPENAI_API_KEY),
 				options);
 
 			OpenAIModelClient modelClient = client.GetOpenAIModelClient();
@@ -352,7 +329,7 @@ namespace LLMConnectorLibrary
 			};
 
 			OpenAIClient client = new(
-				new ApiKeyCredential(OPENAI_API_KEY),
+				new ApiKeyCredential(DEFAULT_OPENAI_API_KEY),
 				openAIClientOptions);
 
 			ChatClient chatClient = client.GetChatClient(model: "LLMName");

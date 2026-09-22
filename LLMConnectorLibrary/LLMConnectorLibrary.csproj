@@ -9,15 +9,18 @@
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <PackAsTool>False</PackAsTool>
     <SignAssembly>False</SignAssembly>
-    <NuGetAudit>False</NuGetAudit>
-    <EnforceCodeStyleInBuild>False</EnforceCodeStyleInBuild>
-    <EnableNETAnalyzers>False</EnableNETAnalyzers>
-    <AnalysisLevel>none</AnalysisLevel>
-    <AutoGenerateBindingRedirects>True</AutoGenerateBindingRedirects>
-  </PropertyGroup>
-
+    <DelaySign>False</DelaySign>
+	<SuppressTfmSupportBuildWarnings>true</SuppressTfmSupportBuildWarnings>
+	<Configurations>Debug;Release;DebugWithoutConnection</Configurations>
+	<RunPostBuildEvent>OnOutputUpdated</RunPostBuildEvent>
+	<ApplicationIcon>AI_APP.ico</ApplicationIcon>
+	</PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <IsPublishable>True</IsPublishable>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugWithoutConnection|AnyCPU'">
+    <IsPublishable>True</IsPublishable>
+    <DefineConstants>$(DefineConstants); AI_MESSAGE_DEBUG</DefineConstants>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
@@ -26,6 +29,10 @@
 
   <ItemGroup>
     <None Remove="FunctionParameters\get_we.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="AI_APP.ico" />
   </ItemGroup>
 
   <ItemGroup>
@@ -39,6 +46,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="10.0.6" />
+    <PackageReference Include="Microsoft.Bcl.HashCode" Version="6.0.0" />
     <PackageReference Include="Microsoft.Bcl.Memory" Version="10.0.6" />
     <PackageReference Include="Microsoft.Bcl.Numerics" Version="10.0.6" />
     <PackageReference Include="Microsoft.Extensions.AI" Version="10.5.0" />
@@ -69,4 +77,9 @@
     <PackageReference Include="System.Threading.Tasks.Extensions" Version="4.6.3" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Reference Include="GigaChat">
+      <HintPath>..\..\gigachat-dotnet\src\bin\Release\netstandard2.0\GigaChat.dll</HintPath>
+    </Reference>
+  </ItemGroup>
 </Project>

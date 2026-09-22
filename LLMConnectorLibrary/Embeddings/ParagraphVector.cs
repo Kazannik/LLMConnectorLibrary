@@ -12,7 +12,7 @@ namespace LLMConnectorLibrary.Embeddings
 		public string Description { get; } = description;
 
 		[VectorStoreVector(
-			Dimensions: 384,
+			dimensions: 384,
 			DistanceFunction = DistanceFunction.CosineSimilarity)]
 		public ReadOnlyMemory<float> Vector { get; set; }
 	}

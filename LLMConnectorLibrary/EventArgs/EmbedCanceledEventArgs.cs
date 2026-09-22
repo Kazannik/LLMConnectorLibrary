@@ -1,4 +1,5 @@
-﻿using System;
+﻿using LLMConnectorLibrary.Models;
+using System;
 using System.Collections.Generic;
 
 namespace LLMConnectorLibrary.EventArgs
@@ -9,11 +10,11 @@ namespace LLMConnectorLibrary.EventArgs
 		public bool Error { get; }
 		public Exception? Exception { get; }
 
-		internal EmbedCanceledEventArgs(string model, IEnumerable<(int key, string description)> values, object? tag) :
+		internal EmbedCanceledEventArgs(IModel model, IEnumerable<(int key, string description)> values, object? tag) :
 			this(model: model, values: values, tag: tag, cancel: true, error: false, exception: null)
 		{ }
 
-		internal EmbedCanceledEventArgs(string model, IEnumerable<(int key, string description)> values, object? tag, bool cancel, bool error, Exception? exception) :
+		internal EmbedCanceledEventArgs(IModel model, IEnumerable<(int key, string description)> values, object? tag, bool cancel, bool error, Exception? exception) :
 			base(model: model, values: values, tag: tag)
 		{
 			Cancel = cancel;
